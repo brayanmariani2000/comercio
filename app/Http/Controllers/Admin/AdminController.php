@@ -121,8 +121,7 @@ class AdminController extends Controller
             ->limit(10)
             ->get();
 
-        return response()->json([
-            'success' => true,
+        return view('admin.dashboard', [
             'estadisticas' => $estadisticas,
             'actividad_reciente' => $actividadReciente,
             'pedidos_recientes' => $pedidosRecientes,

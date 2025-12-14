@@ -12,6 +12,15 @@ use Illuminate\Support\Facades\DB;
 class ProductoController extends Controller
 {
     /**
+     * Mostrar ofertas
+     */
+    public function ofertas(Request $request)
+    {
+        $request->merge(['oferta' => true]);
+        return $this->index($request);
+    }
+
+    /**
      * Mostrar listado de productos
      */
     public function index(Request $request)
@@ -64,10 +73,10 @@ class ProductoController extends Controller
             $orden = $request->get('orden', 'recientes');
             switch ($orden) {
                 case 'precio_asc':
-                    $query->orderBy('precio_actual', 'asc');
+                    $query->orderByRaw('COALESCE(precio_descuento, precio) asc');
                     break;
                 case 'precio_desc':
-                    $query->orderBy('precio_actual', 'desc');
+                    $query->orderByRaw('COALESCE(precio_descuento, precio) desc');
                     break;
                 case 'nombre_asc':
                     $query->orderBy('nombre', 'asc');
@@ -93,8 +102,8 @@ class ProductoController extends Controller
             $categorias = Categoria::activas()->get();
             
             // Obtener rango de precios
-            $precioMin = Producto::activos()->aprobados()->min('precio_actual');
-            $precioMax = Producto::activos()->aprobados()->max('precio_actual');
+            $precioMin = Producto::activos()->aprobados()->min('precio');
+            $precioMax = Producto::activos()->aprobados()->max('precio');
             
             if ($request->expectsJson()) {
                 return response()->json([
@@ -459,72 +468,5 @@ class ProductoController extends Controller
                 'message' => 'Producto no encontrado: ' . $e->getMessage()
             ], 404);
         }
-    }
-     // Scopes
-    public function scopeActivos($query)
-    {
-        return $query->where('activo', true);
-    }
-
-    public function scopeAprobados($query)
-    {
-        return $query->where('aprobado', true);
-    }
-
-    public function scopeDestacados($query)
-    {
-        return $query->where('destacado', true);
-    }
-
-    public function scopeEnOferta($query)
-    {
-        return $query->where('oferta', true)->whereNotNull('precio_descuento');
-    }
-
-    public function scopeNuevos($query)
-    {
-        return $query->where('nuevo', true);
-    }
-
-    // Calcular precio actual
-    public function getPrecioActualAttribute()
-    {
-        return $this->precio_descuento ?? $this->precio;
-    }
-
-    // Calcular porcentaje de descuento
-    public function getDescuentoPorcentajeAttribute()
-    {
-        if ($this->precio_descuento && $this->precio > 0) {
-            $descuento = (($this->precio - $this->precio_descuento) / $this->precio) * 100;
-            return round($descuento);
-        }
-        return 0;
-    }
-
-    // Relaciones
-    public function vendedor()
-    {
-        return $this->belongsTo(Vendedor::class);
-    }
-
-    public function categoria()
-    {
-        return $this->belongsTo(Categoria::class);
-    }
-
-    public function imagenes()
-    {
-        return $this->hasMany(ProductoImagen::class);
-    }
-
-    public function resenas()
-    {
-        return $this->hasMany(Resena::class);
-    }
-
-    public function preguntas()
-    {
-        return $this->hasMany(Pregunta::class);
     }
 }

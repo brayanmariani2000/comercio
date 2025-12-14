@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Storage;
 class ProductoImagen extends Model
 {
     use HasFactory;
+    
+    protected $table = 'producto_imagenes';
 
     protected $fillable = [
         'producto_id',

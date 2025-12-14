@@ -37,13 +37,7 @@ class BusquedaController extends Controller
 
         $productos = $query->paginate(24);
 
-        return response()->json([
-            'success' => true,
-            'productos' => $productos,
-            'termino' => $request->q,
-            'filtros_aplicados' => $request->only(['categoria', 'precio_min', 'precio_max', 'envio_gratis', 'oferta']),
-            'total' => $productos->total()
-        ]);
+        return view('sistema.busqueda.resultados', compact('productos'));
     }
 
     public function sugerencias(Request $request)

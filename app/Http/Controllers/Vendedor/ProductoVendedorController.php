@@ -136,6 +136,15 @@ class ProductoVendedorController extends Controller
     }
 
     /**
+     * Mostrar formulario de crear producto
+     */
+    public function create()
+    {
+        $categorias = Categoria::whereNull('categoria_padre_id')->with('subcategorias')->get();
+        return view('vendedor.productos.create', compact('categorias'));
+    }
+
+    /**
      * Crear nuevo producto
      */
     public function store(Request $request)
@@ -145,10 +154,13 @@ class ProductoVendedorController extends Controller
 
         // Verificar si puede publicar
         if (!$vendedor->puedePublicarProducto()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No puedes publicar más productos. Límite alcanzado o membresía expirada.'
-            ], 400);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No puedes publicar más productos. Límite alcanzado o membresía expirada.'
+                ], 400);
+            }
+            return back()->with('error', 'No puedes publicar más productos. Límite alcanzado o membresía expirada.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -181,10 +193,13 @@ class ProductoVendedorController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            return back()->withErrors($validator)->withInput();
         }
 
         DB::beginTransaction();
@@ -219,9 +234,11 @@ class ProductoVendedorController extends Controller
             ]);
 
             // Subir imágenes
-            foreach ($request->file('imagenes') as $index => $imagen) {
-                $path = $imagen->store('productos/' . $producto->id, 'public');
-                $producto->agregarImagen($path, $index === 0);
+            if ($request->hasFile('imagenes')) {
+                foreach ($request->file('imagenes') as $index => $imagen) {
+                    $path = $imagen->store('productos/' . $producto->id, 'public');
+                    $producto->agregarImagen($path, $index === 0);
+                }
             }
 
             // Registrar en bitácora
@@ -246,18 +263,26 @@ class ProductoVendedorController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Producto creado exitosamente. Esperando aprobación.',
-                'producto' => $producto->load(['categoria', 'imagenes']),
-            ], 201);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Producto creado exitosamente. Esperando aprobación.',
+                    'producto' => $producto->load(['categoria', 'imagenes']),
+                ], 201);
+            }
+
+            return redirect()->route('vendedor.dashboard')
+                ->with('success', 'Producto creado exitosamente. Estará visible cuando sea aprobado por un administrador.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al crear producto: ' . $e->getMessage()
-            ], 500);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al crear producto: ' . $e->getMessage()
+                ], 500);
+            }
+            return back()->with('error', 'Error al crear producto: ' . $e->getMessage())->withInput();
         }
     }
 

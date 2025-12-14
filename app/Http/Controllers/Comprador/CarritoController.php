@@ -30,14 +30,12 @@ class CarritoController extends Controller
         $subtotal = $carrito->calcularSubtotal();
         $totalItems = $carrito->calcularTotalItems();
 
-        return response()->json([
-            'success' => true,
-            'carrito' => $carrito,
-            'items' => $items,
-            'subtotal' => $subtotal,
-            'total_items' => $totalItems,
-            'agrupado_por_vendedor' => $carrito->agruparPorVendedor(),
-        ]);
+        return view('comprador.carrito.index', compact(
+            'carrito',
+            'items',
+            'subtotal',
+            'totalItems'
+        ));
     }
 
     /**

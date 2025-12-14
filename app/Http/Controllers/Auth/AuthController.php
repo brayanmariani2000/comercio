@@ -43,10 +43,13 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            return back()->withErrors($validator)->withInput();
         }
 
         DB::beginTransaction();
@@ -102,21 +105,35 @@ class AuthController extends Controller
 
             DB::commit();
 
+
+
+        if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Usuario registrado exitosamente',
                 'user' => $user,
                 'token' => $user->createToken('auth_token')->plainTextToken,
             ], 201);
+        }
 
-        } catch (\Exception $e) {
-            DB::rollBack();
+        // Si marcó que quiere ser vendedor, redirigir al formulario de vendedor
+        if ($request->has('quiero_ser_vendedor')) {
+            return redirect()->route('vendedor.registro')->with('success', 'Cuenta creada. Completa tu perfil de vendedor para empezar a vender.');
+        }
+
+        return redirect()->route('comprador.dashboard')->with('success', 'Bienvenido a Monagas Vende. Tu cuenta ha sido creada.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        if ($request->wantsJson()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al registrar usuario: ' . $e->getMessage()
             ], 500);
         }
+        return back()->with('error', 'Error al registrar usuario: ' . $e->getMessage())->withInput();
     }
+}
 
     /**
      * Login de usuario
@@ -130,10 +147,13 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            return back()->withErrors($validator)->withInput();
         }
 
         $credentials = $request->only('email', 'password');
@@ -146,10 +166,13 @@ class AuthController extends Controller
                 Auth::logout();
                 BitacoraSistema::registrarLogin($user->id, false, 'Cuenta suspendida');
                 
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tu cuenta ha sido suspendida'
-                ], 403);
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tu cuenta ha sido suspendida'
+                    ], 403);
+                }
+                return back()->with('error', 'Tu cuenta ha sido suspendida.');
             }
 
             // Actualizar último acceso
@@ -158,21 +181,36 @@ class AuthController extends Controller
             // Registrar login exitoso
             BitacoraSistema::registrarLogin($user->id, true);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Login exitoso',
-                'user' => $user,
-                'token' => $user->createToken('auth_token')->plainTextToken,
-            ]);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Login exitoso',
+                    'user' => $user,
+                    'token' => $user->createToken('auth_token')->plainTextToken,
+                ]);
+            }
+
+            // Redirección por rol
+            if ($user->esAdministrador()) {
+                return redirect()->route('admin.dashboard');
+            } elseif ($user->esVendedor()) {
+                return redirect()->route('vendedor.dashboard');
+            }
+            
+            return redirect()->route('comprador.dashboard');
         }
 
         // Registrar login fallido
         BitacoraSistema::registrarLogin(null, false, 'Credenciales incorrectas');
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Credenciales incorrectas'
-        ], 401);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Credenciales incorrectas'
+            ], 401);
+        }
+
+        return back()->withErrors(['email' => 'Las credenciales proporcionadas no coinciden con nuestros registros.'])->withInput();
     }
 
     /**
@@ -186,16 +224,28 @@ class AuthController extends Controller
             // Registrar logout
             BitacoraSistema::registrarLogout($user->id);
             
-            // Revocar token actual
-            $request->user()->currentAccessToken()->delete();
+            // Revocar token actual (solo si es API Token)
+            if ($user->currentAccessToken() && method_exists($user->currentAccessToken(), 'delete')) {
+                $user->currentAccessToken()->delete();
+            }
         }
 
-        Auth::logout();
+        // Cerrar sesión web explícitamente
+        Auth::guard('web')->logout();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Logout exitoso'
-        ]);
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Logout exitoso'
+            ]);
+        }
+
+        return redirect()->route('home')->with('success', 'Has cerrado sesión correctamente.');
     }
 
     /**
@@ -206,18 +256,30 @@ class AuthController extends Controller
         $user = $request->user();
         $user->load(['estado', 'ciudad', 'direccionesEnvio', 'vendedor']);
 
-        return response()->json([
-            'success' => true,
-            'user' => $user,
-            'estadisticas' => [
-                'total_compras' => $user->total_compras,
-                'monto_total_compras' => $user->monto_total_compras,
-                'rating_promedio' => $user->rating_promedio,
-                'direcciones' => $user->direccionesEnvio()->count(),
-                'wishlists' => $user->wishlists()->count(),
-                'notificaciones_no_leidas' => $user->notificacionesNoLeidas()->count(),
-            ]
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'user' => $user,
+                'estadisticas' => [
+                    'total_compras' => $user->total_compras ?? 0,
+                    'monto_total_compras' => $user->monto_total_compras ?? 0,
+                    'rating_promedio' => $user->rating_promedio ?? 0,
+                    'direcciones' => $user->direccionesEnvio()->count(),
+                    'wishlists' => $user->wishlists()->count(),
+                    'notificaciones_no_leidas' => 0, // Implementar modelo Notificacion si no existe
+                ]
+            ]);
+        }
+
+        return view('auth.profile', compact('user'));
+    }
+
+    /**
+     * Mostrar configuración
+     */
+    public function config()
+    {
+        return view('auth.config');
     }
 
     /**
@@ -356,6 +418,14 @@ class AuthController extends Controller
     }
 
     /**
+     * Mostrar formulario de registro de vendedor
+     */
+    public function showVendorRegisterForm()
+    {
+        return view('auth.register-vendor');
+    }
+
+    /**
      * Convertirse en vendedor
      */
     public function registerAsVendor(Request $request)
@@ -364,10 +434,13 @@ class AuthController extends Controller
 
         // Verificar si ya es vendedor
         if ($user->esVendedor()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ya eres vendedor'
-            ], 400);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya eres vendedor'
+                ], 400);
+            }
+            return redirect()->route('vendedor.dashboard');
         }
 
         $validator = Validator::make($request->all(), [
@@ -389,10 +462,13 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            return back()->withErrors($validator)->withInput();
         }
 
         DB::beginTransaction();
@@ -417,7 +493,7 @@ class AuthController extends Controller
                 'metodos_pago' => $request->metodos_pago,
                 'zonas_envio' => $request->zonas_envio,
                 'verificado' => false,
-                'activo' => true,
+                'activo' => true, // Puede estar activo pero no verificado
                 'membresia' => 'basico',
                 'fecha_vencimiento_membresia' => now()->addMonth(),
             ]);
@@ -455,18 +531,25 @@ class AuthController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Solicitud de registro como vendedor enviada. Espera la verificación.',
-                'vendedor' => $vendedor,
-            ], 201);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Solicitud de registro como vendedor enviada. Espera la verificación.',
+                    'vendedor' => $vendedor,
+                ], 201);
+            }
+
+            return redirect()->route('vendedor.dashboard')->with('success', '¡Registro de vendedor completado! Tu cuenta está en proceso de verificación, pero ya puedes explorar tu panel.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al registrar vendedor: ' . $e->getMessage()
-            ], 500);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al registrar vendedor: ' . $e->getMessage()
+                ], 500);
+            }
+            return back()->with('error', 'Error al registrar vendedor: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -624,9 +707,8 @@ class AuthController extends Controller
      */
 public function showRegisterForm()
 {
-    // Temporalmente sin estados/ciudades
-    $estados = collect([]);
-    $ciudades = collect([]);
+    $estados = EstadoVenezuela::orderBy('nombre')->get();
+    $ciudades = CiudadVenezuela::orderBy('nombre')->get();
     
     return view('auth.register', compact('estados', 'ciudades'));
 }

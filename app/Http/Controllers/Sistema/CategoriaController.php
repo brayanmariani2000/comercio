@@ -15,10 +15,7 @@ class CategoriaController extends Controller
             ->with('subcategorias')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'categorias' => $categorias
-        ]);
+        return view('sistema.categorias.index', compact('categorias'));
     }
 
     public function show($slug)
@@ -34,12 +31,6 @@ class CategoriaController extends Controller
         // Atributos para sidebar/filtros
         $atributos = $categoria->obtenerAtributosFiltrables();
 
-        return response()->json([
-            'success' => true,
-            'categoria' => $categoria,
-            'productos' => $productos,
-            'filtros_disponibles' => $atributos,
-            'ruta_completa' => $categoria->ruta_completa
-        ]);
+        return view('sistema.categorias.show', compact('categoria', 'productos', 'atributos'));
     }
 }

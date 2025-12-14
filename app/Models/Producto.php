@@ -339,6 +339,11 @@ class Producto extends Model
         return $query->where('activo', true)->where('aprobado', true);
     }
 
+    public function scopeAprobados($query)
+    {
+        return $query->where('aprobado', true);
+    }
+
     public function scopeEnOferta($query)
     {
         return $query->where('oferta', true)->whereNotNull('precio_descuento');

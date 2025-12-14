@@ -56,17 +56,6 @@ class IsComprador
         }
 
         // Verificar email verificado
-        if (!$request->routeIs('verification.*') && !auth()->user()->hasVerifiedEmail()) {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Debes verificar tu email antes de continuar'
-                ], 403);
-            }
-            
-            return redirect()->route('verification.notice')->with('warning', 'Verifica tu email para continuar');
-        }
-
         // Actualizar último acceso
         auth()->user()->update(['ultimo_acceso' => now()]);
 

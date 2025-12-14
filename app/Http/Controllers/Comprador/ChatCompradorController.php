@@ -10,6 +10,47 @@ use Illuminate\Support\Facades\Storage;
 
 class ChatCompradorController extends Controller
 {
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'vendedor_id' => 'required|exists:vendedores,id',
+            'producto_id' => 'nullable|exists:productos,id',
+            'mensaje' => 'required|string|min:1',
+            'asunto' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        // Buscar conversación existente abierta
+        $query = Conversacion::abiertas()
+            ->porUsuario($request->user()->id)
+            ->porVendedor($request->vendedor_id);
+            
+        if ($request->producto_id) {
+            $query->where('producto_id', $request->producto_id);
+        }
+            
+        $conversacion = $query->first();
+
+        if (!$conversacion) {
+            $conversacion = Conversacion::create([
+                'user_id' => $request->user()->id,
+                'vendedor_id' => $request->vendedor_id,
+                'producto_id' => $request->producto_id,
+                'asunto' => $request->asunto,
+                'estado' => 'abierta',
+                'ultimo_mensaje_at' => now(),
+            ]);
+        }
+
+        // Enviar mensaje
+        $conversacion->enviarMensaje($request->mensaje, $request->user()->id);
+
+        return response()->json(['success' => true, 'conversacion' => $conversacion]);
+    }
+
     public function index(Request $request)
     {
         $conversaciones = $request->user()->conversacionesComoComprador()
@@ -17,7 +58,11 @@ class ChatCompradorController extends Controller
             ->orderBy('ultimo_mensaje_at', 'desc')
             ->paginate(20);
 
-        return response()->json(['success' => true, 'conversaciones' => $conversaciones]);
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'conversaciones' => $conversaciones]);
+        }
+
+        return view('comprador.mensajes.index', compact('conversaciones'));
     }
 
     public function show(Request $request, $id)

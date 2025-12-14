@@ -9,6 +9,8 @@ class Comision extends Model
 {
     use HasFactory;
 
+    protected $table = 'comisiones';
+
     protected $fillable = [
         'vendedor_id',
         'pedido_id',

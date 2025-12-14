@@ -45,17 +45,7 @@ class PedidoController extends Controller
         
         $pedidos = $query->paginate($request->get('per_page', 15));
         
-        return response()->json([
-            'success' => true,
-            'pedidos' => $pedidos,
-            'estadisticas' => [
-                'total' => $user->total_compras,
-                'pendientes' => $user->pedidos()->where('estado_pedido', 'pendiente')->count(),
-                'en_proceso' => $user->pedidos()->whereIn('estado_pedido', ['confirmado', 'preparando', 'enviado'])->count(),
-                'completados' => $user->pedidos()->where('estado_pedido', 'entregado')->count(),
-                'cancelados' => $user->pedidos()->where('estado_pedido', 'cancelado')->count(),
-            ]
-        ]);
+        return view('comprador.pedidos.index', compact('pedidos', 'user'));
     }
 
     /**
@@ -74,14 +64,12 @@ class PedidoController extends Controller
             ])
             ->findOrFail($id);
         
-        return response()->json([
-            'success' => true,
-            'pedido' => $pedido,
-            'datos_impresion' => $pedido->datosParaImpresion(),
-            'qr_base64' => $pedido->generarQRImagen(200),
-            'barcode_base64' => $pedido->generarCodigoBarras(),
-            'factura' => $pedido->generarFactura(),
-        ]);
+        $datos_impresion = $pedido->datosParaImpresion();
+        $qr_base64 = $pedido->generarQRImagen(200);
+        $barcode_base64 = $pedido->generarCodigoBarras();
+        $factura = $pedido->generarFactura();
+        
+        return view('comprador.pedidos.show', compact('pedido', 'datos_impresion', 'qr_base64', 'barcode_base64', 'factura'));
     }
 
     /**

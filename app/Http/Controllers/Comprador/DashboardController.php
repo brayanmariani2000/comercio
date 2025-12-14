@@ -102,19 +102,14 @@ class DashboardController extends Controller
             ->get()
             ->pluck('producto');
 
-        return response()->json([
-            'success' => true,
-            'estadisticas' => $estadisticas,
-            'recomendaciones' => $recomendaciones,
-            'notificaciones_recientes' => $notificacionesRecientes,
-            'pedidos_recientes' => $pedidosRecientes,
-            'wishlist_productos' => $wishlistProductos,
-            'productos_vistos' => $productosVistos,
-            'meta' => [
-                'titulo' => 'Mi Cuenta - Panel del Comprador',
-                'descripcion' => 'Gestiona tus pedidos, wishlist, notificaciones y preferencias',
-            ]
-        ]);
+        return view('comprador.dashboard', compact(
+            'estadisticas',
+            'recomendaciones',
+            'notificacionesRecientes',
+            'pedidosRecientes',
+            'wishlistProductos',
+            'productosVistos'
+        ));
     }
 
     /**
@@ -144,7 +139,8 @@ class DashboardController extends Controller
                 })
                 ->inRandomOrder()
                 ->limit(6)
-                ->get(['id', 'nombre', 'precio', 'imagen_url']);
+                ->get(['id', 'nombre', 'precio'])
+                ->append('imagen_url');
             $recomendaciones['basado_en_compras'] = $productosSimilares;
         }
 
@@ -155,7 +151,8 @@ class DashboardController extends Controller
             ->whereIn('categoria_id', $ultimosProductos)
             ->inRandomOrder()
             ->limit(4)
-            ->get(['id', 'nombre', 'precio', 'precio_descuento', 'imagen_url', 'descuento_porcentaje']);
+            ->get(['id', 'nombre', 'precio', 'precio_descuento'])
+            ->append(['imagen_url', 'descuento_porcentaje']);
         $recomendaciones['ofertas_para_ti'] = $ofertas;
 
         // Productos en wishlist con descuento
@@ -167,7 +164,8 @@ class DashboardController extends Controller
             $enOferta = Producto::whereIn('id', $wishlistIds)
                 ->where('oferta', true)
                 ->whereNotNull('precio_descuento')
-                ->get(['id', 'nombre', 'precio', 'precio_descuento', 'imagen_url']);
+                ->get(['id', 'nombre', 'precio', 'precio_descuento'])
+                ->append('imagen_url');
             $recomendaciones['wishlist_en_oferta'] = $enOferta;
         }
 

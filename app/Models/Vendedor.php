@@ -10,6 +10,8 @@ class Vendedor extends Model
 {
     use HasFactory;
 
+    protected $table = 'vendedores';
+
     protected $fillable = [
         'user_id',
         'rif',

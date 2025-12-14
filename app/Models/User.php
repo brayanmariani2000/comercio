@@ -151,6 +151,17 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     // MÉTODOS
+    /**
+     * Verificar si el usuario tiene un rol específico
+     * 
+     * @param string $role
+     * @return bool
+     */
+    public function hasRole($role)
+    {
+        return $this->tipo_usuario === $role;
+    }
+
     public function esVendedor()
     {
         return $this->tipo_usuario === 'vendedor' || $this->vendedor()->exists();
