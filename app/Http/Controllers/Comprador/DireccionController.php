@@ -21,7 +21,6 @@ class DireccionController extends Controller
             'nombre_completo' => 'required|string',
             'cedula' => 'required|string',
             'telefono' => 'required|string',
-            'direccion' => 'required|string',
             'estado_id' => 'required|exists:estados_venezuela,id',
             'ciudad_id' => 'required|exists:ciudades_venezuela,id',
             'codigo_postal' => 'nullable|string',

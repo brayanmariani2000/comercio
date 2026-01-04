@@ -12,30 +12,44 @@ class CiudadVenezuela extends Model
     protected $table = 'ciudades_venezuela';
 
     protected $fillable = [
-        'estado_id',
+        'municipio_id',
         'nombre',
-        'codigo',
+        'codigo_postal',
         'activo',
+        'latitud',
+        'longitud',
+        'poblacion',
+        'altitud',
+        'clima',
     ];
 
     protected $casts = [
         'activo' => 'boolean',
+        'latitud' => 'decimal:6',
+        'longitud' => 'decimal:6',
+        'poblacion' => 'integer',
+        'altitud' => 'integer',
     ];
 
     // RELACIONES
+    public function municipio()
+    {
+        return $this->belongsTo(MunicipioVenezuela::class);
+    }
+
     public function estado()
     {
-        return $this->belongsTo(EstadoVenezuela::class, 'estado_id');
+        return $this->belongsToThrough(EstadoVenezuela::class, MunicipioVenezuela::class);
     }
 
     public function usuarios()
     {
-        return $this->hasMany(User::class, 'ciudad_id');
+        return $this->hasMany(User::class);
     }
 
     public function direccionesEnvio()
     {
-        return $this->hasMany(DireccionEnvio::class, 'ciudad_id');
+        return $this->hasMany(DireccionEnvio::class);
     }
 
     // SCOPE
@@ -44,14 +58,14 @@ class CiudadVenezuela extends Model
         return $query->where('activo', true);
     }
 
-    public function scopePorEstado($query, $estadoId)
+    public function scopePorMunicipio($query, $municipioId)
     {
-        return $query->where('estado_id', $estadoId);
+        return $query->where('municipio_id', $municipioId);
     }
 
     // MÉTODOS
     public function getNombreCompletoAttribute()
     {
-        return "{$this->nombre}, {$this->estado->nombre}";
+        return "{$this->nombre}, {$this->municipio->nombre}, {$this->estado->nombre}";
     }
 }

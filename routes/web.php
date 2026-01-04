@@ -107,3 +107,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->name('admin.')->g
     Route::post('/vendedores/{id}/aprobar', [\App\Http\Controllers\Admin\VendedorAdminController::class, 'verificar'])->name('vendedores.aprobar');
     Route::post('/vendedores/{id}/rechazar', [\App\Http\Controllers\Admin\VendedorAdminController::class, 'rechazar'])->name('vendedores.rechazar');
 });
+
+// Rutas AJAX para cargar municipios y ciudades
+Route::get('/municipios/por-estado/{estadoId}', [AuthController::class, 'getMunicipiosPorEstado'])
+    ->name('municipios.por.estado');
+    
+Route::get('/ciudades/por-municipio/{municipioId}', [AuthController::class, 'getCiudadesPorMunicipio'])
+    ->name('ciudades.por.municipio');

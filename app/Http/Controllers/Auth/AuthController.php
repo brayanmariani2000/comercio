@@ -7,6 +7,9 @@ use App\Models\User;
 use App\Models\Vendedor;
 use App\Models\CodigoVerificacion;
 use App\Models\BitacoraSistema;
+use App\Models\EstadoVenezuela;
+use App\Models\MunicipioVenezuela; 
+use App\Models\CiudadVenezuela;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -15,32 +18,30 @@ use Illuminate\Validation\Rules;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use App\Models\EstadoVenezuela;  // <-- AÑADE ESTA LÍNEA
-use App\Models\CiudadVenezuela;
 
 class AuthController extends Controller
 {
     /**
      * Registrar nuevo usuario
      */
-    public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'cedula' => ['required', 'string', 'unique:users'],
-            'telefono' => ['required', 'string'],
-            'genero' => ['nullable', 'in:masculino,femenino,otro'],
-            'fecha_nacimiento' => ['nullable', 'date'],
-            'direccion' => ['nullable', 'string'],
-            'estado_id' => ['required', 'exists:estados_venezuela,id'],
-            'ciudad_id' => ['required', 'exists:ciudades_venezuela,id'],
-            'codigo_postal' => ['nullable', 'string'],
-            'tipo_persona' => ['required', 'in:natural,juridica'],
-            'rif' => ['nullable', 'required_if:tipo_persona,juridica', 'unique:users'],
-            'acepto_terminos' => ['required', 'accepted'],
-        ]);
+   public function register(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+        'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        'cedula' => ['required', 'string', 'unique:users'],
+        'telefono' => ['required', 'string'],
+        'genero' => ['nullable', 'in:masculino,femenino,otro'],
+        'fecha_nacimiento' => ['nullable', 'date'],
+        'direccion' => ['nullable', 'string'],
+        'estado_id' => ['required', 'exists:estados_venezuela,id'],
+        'municipio_id' => ['required', 'exists:municipios_venezuela,id'], // <-- AGREGAR ESTO
+        'codigo_postal' => ['nullable', 'string'],
+        'tipo_persona' => ['required', 'in:natural,juridica'],
+        'rif' => ['nullable', 'required_if:tipo_persona,juridica', 'unique:users'],
+        'acepto_terminos' => ['required', 'accepted'],
+    ]);
 
         if ($validator->fails()) {
             if ($request->wantsJson()) {
@@ -55,22 +56,22 @@ class AuthController extends Controller
         DB::beginTransaction();
         try {
             $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'cedula' => $request->cedula,
-                'rif' => $request->rif,
-                'tipo_persona' => $request->tipo_persona,
-                'telefono' => $request->telefono,
-                'fecha_nacimiento' => $request->fecha_nacimiento,
-                'genero' => $request->genero,
-                'direccion' => $request->direccion,
-                'estado_id' => $request->estado_id,
-                'ciudad_id' => $request->ciudad_id,
-                'codigo_postal' => $request->codigo_postal,
-                'tipo_usuario' => 'comprador',
-                'verificado' => false,
-            ]);
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'cedula' => $request->cedula,
+        'rif' => $request->rif,
+        'tipo_persona' => $request->tipo_persona,
+        'telefono' => $request->telefono,
+        'fecha_nacimiento' => $request->fecha_nacimiento,
+        'genero' => $request->genero,
+        'direccion' => $request->direccion,
+        'estado_id' => $request->estado_id,
+        'municipio_id' => $request->municipio_id, // solo si tienes esta columna
+        'codigo_postal' => $request->codigo_postal,
+        'tipo_usuario' => 'comprador',
+        'verificado' => false,
+    ]);
 
             // Crear carrito para el usuario
             $user->carrito()->create();
@@ -705,13 +706,55 @@ class AuthController extends Controller
     /**
      * Mostrar formulario de registro
      */
-public function showRegisterForm()
-{
-    $estados = EstadoVenezuela::orderBy('nombre')->get();
-    $ciudades = CiudadVenezuela::orderBy('nombre')->get();
-    
-    return view('auth.register', compact('estados', 'ciudades'));
-}
+       public function getCiudadesPorMunicipio($municipioId)
+    {
+        // Verificar si el municipio existe
+        $municipio = MunicipioVenezuela::find($municipioId); // <-- Necesitas el modelo
+        
+        if (!$municipio) {
+            return response()->json(['error' => 'Municipio no encontrado'], 404);
+        }
+        
+        // Obtener ciudades del municipio
+        $ciudades = $municipio->ciudades()
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+        
+        return response()->json($ciudades);
+    }
+
+    public function getMunicipiosPorEstado($estadoId)
+    {
+        // Verificar si el estado existe
+        $estado = EstadoVenezuela::find($estadoId);
+        
+        if (!$estado) {
+            return response()->json(['error' => 'Estado no encontrado'], 404);
+        }
+        
+        // Obtener municipios del estado
+        $municipios = $estado->municipios()
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+        
+        return response()->json($municipios);
+    }
+
+ public function showRegisterForm()
+    {
+        $estados = EstadoVenezuela::where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+        
+        $ciudades = CiudadVenezuela::where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+        
+        return view('auth.register', compact('estados', 'ciudades'));
+    }
+
     /**
      * Mostrar formulario de verificación
      */
