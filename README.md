@@ -1,34 +1,58 @@
-<div align="center">
+```markdown
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║  ██████╗ ██████╗   █████╗ ██╗   ██╗ █████╗ ███╗   ██╗        ║
+║  ██╔══██╗██╔══██╗ ██╔══██╗╚██╗ ██╔╝██╔══██╗████╗  ██║        ║
+║  ██████╔╝██████╔╝ ███████║ ╚████╔╝ ███████║██╔██╗ ██║        ║
+║  ██╔══██╗██╔══██╗ ██╔══██║  ╚██╔╝  ██╔══██║██║╚██╗██║        ║
+║  ██████╔╝██║  ██║ ██║  ██║   ██║   ██║  ██║██║ ╚████║        ║
+║  ╚═════╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝        ║
+║                                                              ║
+║  ███╗   ███╗ █████╗ ██████╗ ██╗ █████╗ ███╗   ██╗██╗         ║
+║  ████╗ ████║██╔══██╗██╔══██╗██║██╔══██╗████╗  ██║██║         ║
+║  ██╔████╔██║███████║██████╔╝██║███████║██╔██╗ ██║██║         ║
+║  ██║╚██╔╝██║██╔══██║██╔══██╗██║██╔══██║██║╚██╗██║██║         ║
+║  ██║ ╚═╝ ██║██║  ██║██║  ██║██║██║  ██║██║ ╚████║██║         ║
+║  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝         ║
+║                                                              ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║         SISTEMA DE COMERCIO PARA EL ESTADO MONAGAS           ║
+║                                                              ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║                       AUTOR:                                 ║            
+║               B R A Y A N   M A R I A N I                    ║
+║                                                              ║
+║           "Desarrollador Full Stack Apasionado"              ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
 
-# 🏬 SISTEMA DE COMERCIO - ESTADO MONAGAS
-**Solución integral para la gestión comercial regional**
+##  INSTALACIÓN RÁPIDA
 
-[![Laravel](img.shields.io)](https://laravel.com)
-[![PHP](img.shields.io)](https://php.net)
-[![License: MIT](img.shields.io)](opensource.org)
-[![Build Status](img.shields.io)](github.com)
-
-> "Desarrollador Full Stack Apasionado comprometido con la innovación tecnológica en Monagas."
-</div>
-
----
-
-## 📖 Sobre el Proyecto
-Este sistema está diseñado para digitalizar y optimizar los procesos comerciales dentro del Estado Monagas. Ofrece una interfaz robusta para el manejo de inventarios, ventas y reportes estadísticos, construido sobre el framework Laravel para garantizar escalabilidad y seguridad.
-
----
-
-## 🚀 Instalación Rápida
-
-Sigue estos pasos detallados para configurar tu entorno de desarrollo en minutos:
-
-### 1️⃣ Clonar y Dependencias
 ```bash
-# Clonar el repositorio
-git clone github.com.git
+# 1. Clonar repositorio
+git clone https://github.com/brayanmariani2000/comercio.git
 
-# Entrar al directorio
+# 2. Navegar al directorio
 cd comercio
 
-# Instalar dependencias de PHP
+# 3. Instalar dependencias PHP
 composer install
+
+# 4. Configurar entorno
+cp .env.example .env
+php artisan key:generate
+
+# 5. Configurar base de datos (en .env)
+# DB_DATABASE=laravel
+# DB_USERNAME=root
+# DB_PASSWORD=
+# 6. Ejecutar migraciones
+php artisan migrate
+
+# 7. Poblar base de datos
+php artisan db:seed
+
+# 8. Opcional Iniciar servidor
+# php artisan serve
