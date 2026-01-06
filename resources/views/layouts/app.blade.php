@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'MONAGAS.TECH - Comunidad Tecnológica Exclusiva')</title>
-    <meta name="description" content="@yield('description', 'Descubre tecnología de vanguardia en la comunidad más exclusiva de Venezuela. Productos premium, servicios personalizados y experiencias únicas.')">
+    <meta name="description" content="@yield('description', 'Descubre tecnología de vanguardia en la comunidad más exclusiva de Venezuela. Productos premium, servicios personalizados y experiencia...')">
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -310,8 +311,6 @@
         </div>
     </div>
     
-    <!-- Fondo de pantalla completa -->
-    
     <!-- Grid decorativo -->
     <div class="grid-overlay"></div>
     
@@ -429,6 +428,33 @@
                 generateParticles();
             }
         });
+    </script>
+
+    <!-- CSRF initialization for axios/fetch -->
+    <script>
+        (function () {
+            const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = tokenMeta ? tokenMeta.getAttribute('content') : null;
+
+            if (typeof axios !== 'undefined') {
+                axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+                if (csrfToken) {
+                    axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+                }
+            }
+
+            if (csrfToken) {
+                window.__CSRF_TOKEN__ = csrfToken;
+                window.fetchWithCsrf = function(url, options = {}) {
+                    options.headers = Object.assign({}, options.headers || {}, {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    });
+                    return fetch(url, options);
+                };
+            }
+        })();
     </script>
     
     @stack('scripts')

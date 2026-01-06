@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Session\TokenMismatchException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -26,5 +27,24 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    /**
+     * Render an exception into an HTTP response.
+     */
+    public function render($request, Throwable $e)
+    {
+        if ($e instanceof TokenMismatchException) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Su sesión expiró. Por favor recargue la página e inicie sesión de nuevo.'
+                ], 419);
+            }
+
+            // Redirige al login con mensaje flash
+            return redirect()->route('login')->with('error', 'Su sesión expiró. Por favor inicie sesión de nuevo.');
+        }
+
+        return parent::render($request, $e);
     }
 }
